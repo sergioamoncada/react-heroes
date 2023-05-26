@@ -3541,7 +3541,7 @@ Les forces de Nginx résident dans sa simplicité, sa légèreté et ses excelle
 
 ## 110 - Commencement du projet SPA nginx - s9-v1.
 
-1. Après le clone de cette application avec le lien [github](). Nous devons faire la commande suivante :
+1. Après le clone de cette application avec le lien [github](https://github.com/sergioamoncada/react-heroes). Nous devons faire la commande suivante :
 
 ```
 yarn install
@@ -3744,3 +3744,199 @@ server {
 root@*************:/etc/nginx/conf.d#
 
 ```
+
+## 113 - Construire l'image de notre application avec docker et nginx
+
+1. Créer le fichier [.dockerignore](.dockerignore).
+
+```
+node_modules
+.git
+dist
+README.md
+```
+
+2. Créer le fichier [Dockerfile](Dockerfile).
+
+```
+FROM node:19-alpine3.15 as dev-deps
+WORKDIR /app
+COPY package.json package.json
+RUN yarn install --frozen-lockfile
+
+
+FROM node:19-alpine3.15 as builder
+WORKDIR /app
+COPY --from=dev-deps /app/node_modules ./node_modules
+COPY . .
+# RUN yarn test
+RUN yarn build
+
+
+FROM nginx:1.23.3 as prod
+EXPOSE 80
+COPY --from=builder /app/dist /usr/share/nginx/html
+CMD [ "nginx", "-g", "daemon off;"]
+```
+
+3. Lancer le build de l'application le configuration est pas terminer :
+
+```
+docker build -t heroes-app . --no-cache
+
+docker image ls
+```
+
+4. Faire courir le container de notre application :
+
+```
+docker container run -p 80:80 heroes-app
+```
+
+Vérifier le localhost en ligne !
+
+![localhost](assets/img/localhost-heroes-app-run-nginx.png)
+
+- Il est normal que le photo ne fonctionne pas car nous n'avions pas finir les `configuration`
+
+Pour finir effacer l'application car nous devons récréer le build dans la prochain chapitre.
+
+## 114 - Configuration de Nginx pour faire courir l'application.
+
+1. Ici nous devons créer un nouveau dossier avec son fichier à l'intérieur du nom : [nginx/nginx.conf](nginx/nginx.conf).
+
+Il est important de copie les informations à l'intérieur du container vers de nouveau fichier `nginx/nginx.conf`. Voici le path :
+
+```
+# 112 : voir ou aller chercher longue version :
+
+docker exec -it <your_id> bash
+
+root@*************:/etc/nginx/conf.d#
+
+# cat default.conf
+```
+
+- Copie et coller cette information dans [nginx/nginx.conf](nginx/nginx.conf).
+
+2. Voici à quoi doit resemble notre nginx/nginx.conf
+
+```
+server {
+    listen       80;
+    server_name  localhost;
+
+    #access_log  /var/log/nginx/host.access.log  main;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+        try_files $uri $uri/ / index.html;
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    #location ~ \.php$ {
+    #    root           html;
+    #    fastcgi_pass   127.0.0.1:9000;
+    #    fastcgi_index  index.php;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+    #    include        fastcgi_params;
+    #}
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+}
+```
+
+2. Les corrections à faire dans le [Dockerfile](Dockerfile) pour lancer le server de Nginx sur docker.
+
+```
+FROM node:19-alpine3.15 as dev-deps
+WORKDIR /app
+COPY package.json package.json
+RUN yarn install --frozen-lockfile
+
+
+FROM node:19-alpine3.15 as builder
+WORKDIR /app
+COPY --from=dev-deps /app/node_modules ./node_modules
+COPY . .
+# RUN yarn test
+RUN yarn build
+
+
+FROM nginx:1.23.3 as prod
+EXPOSE 80
+COPY --from=builder /app/dist /usr/share/nginx/html
+RUN rm /etc/nginx/conf.d/default.conf
+COPY nginx/nginx.conf /etc/nginx/conf.d
+CMD [ "nginx", "-g", "daemon off;"]
+```
+
+Il va manquer la configuration pour le photo :
+
+3. Lancer le build de l'application :
+
+```
+docker build -t heroes-app . --no-cache
+
+docker container run -p 80:80 heroes-app
+```
+
+## 115 - Copie les recours static comme les images.
+
+1. modification dans le fichier [Dockerfile](Dockerfile).
+
+```
+FROM node:19-alpine3.15 as dev-deps
+WORKDIR /app
+COPY package.json package.json
+RUN yarn install --frozen-lockfile
+
+
+FROM node:19-alpine3.15 as builder
+WORKDIR /app
+COPY --from=dev-deps /app/node_modules ./node_modules
+COPY . .
+# RUN yarn test
+RUN yarn build
+
+
+FROM nginx:1.23.3 as prod
+EXPOSE 80
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY assets/heroes/ /usr/share/nginx/html/assets
+RUN rm /etc/nginx/conf.d/default.conf
+COPY nginx/nginx.conf /etc/nginx/conf.d
+CMD [ "nginx", "-g", "daemon off;"]
+```
+
+3. Lancer le build de l'application :
+
+```
+docker build -t heroes-app .
+
+docker container run -p 80:80 heroes-app
+```
+
+![Projet working](assets/img/nginx-server-end-project.png)
