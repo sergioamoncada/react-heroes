@@ -3567,4 +3567,180 @@ yarn build
 
 ## 111 - Nginx - DockerHub.
 
-1. utiliser Nginx avec docker et deployer sur dockerhub :
+1. utiliser Nginx avec docker, déploiement du serveur Nginx :
+
+```
+docker run --name some-nginx -d -p 8080:80 nginx:1.23.3
+```
+
+Vérifier si le serveur à bien été lancer :
+![docker desktop - nginx container](assets/img/nginx-server-starting.png)
+![localhost:8080](assets/img/localhost-nginx-online.png)
+
+## 112 - Inspecter le container Nginx.
+
+1. Vérifier le container et rentrer à l'intérieur de celui-ci :
+
+```
+docker container ls
+
+docker exec -it <your_id> bash
+```
+
+Voir la [documentation](https://hub.docker.com/_/nginx) pour trouver le path du server :
+
+intérieur du bash du container - ou shell : `Hosting some simple static content`
+
+## **_/usr/share/nginx/html_**
+
+```
+root@*************:/#
+
+# ls
+bin  boot  dev  docker-entrypoint.d  docker-entrypoint.sh  etc  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+root@*************:/#
+
+# cd usr/
+root@*************:/usr#
+
+# ls
+bin  games  include  lib  libexec  local  sbin  share  src
+root@*************:/usr#
+
+# cd share/
+root@*************:/usr/share#
+
+# ls
+X11      base-files   bash-completion  ca-certificates  debconf      dict  doc-base  fontconfig  gcc  info  keyrings  lintian  man         menu  nginx  pam-configs  pixmaps   readline        tabset    ucf  zoneinfo
+adduser  base-passwd  bug              common-licenses  debianutils  doc   dpkg      fonts       gdb  java  libc-bin  locale   maven-repo  misc  pam    perl5        polkit-1  sensible-utils  terminfo  xml  zsh
+root@*************:/usr/share#
+
+# cd nginx
+root@*************:/usr/share/nginx#
+
+# ls
+html
+root@*************:/usr/share/nginx#
+
+# cd html/
+root@*************:/usr/share/nginx/html#
+
+# ls
+50x.html  index.html
+root@*************:/usr/share/nginx/html#
+
+# cat index.html
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Welcome to nginx!</title>
+    <style>
+      html {
+        color-scheme: light dark;
+      }
+      body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Welcome to nginx!</h1>
+    <p>
+      If you see this page, the nginx web server is successfully installed and
+      working. Further configuration is required.
+    </p>
+
+    <p>
+      For online documentation and support please refer to
+      <a href="http://nginx.org/">nginx.org</a>.<br />
+      Commercial support is available at
+      <a href="http://nginx.com/">nginx.com</a>.
+    </p>
+
+    <p><em>Thank you for using nginx.</em></p>
+  </body>
+</html>
+
+root@*************:/usr/share/nginx/html#
+
+```
+
+2. En savoir plus sur la `configuration complex` voir lien de la [doc](https://hub.docker.com/_/nginx).
+
+## **_$ docker run --name my-custom-nginx-container -v /host/path/nginx.conf:/etc/nginx/nginx.conf:ro -d nginx_**
+
+```
+root@*************:/usr/share/nginx/html# cd /
+root@*************:/#
+
+# ls
+bin  boot  dev  docker-entrypoint.d  docker-entrypoint.sh  etc  home  lib  lib64  media  mnt  opt  proc  root  run  sbin  srv  sys  tmp  usr  var
+root@*************:/#
+
+# cd etc/nginx/
+root@*************:/etc/nginx#
+
+# ls
+conf.d  fastcgi_params  mime.types  modules  nginx.conf  scgi_params  uwsgi_params
+root@*************:/etc/nginx#
+
+# cd conf.d
+root@*************:/etc/nginx/conf.d#
+
+# ls
+default.conf
+root@*************:/etc/nginx/conf.d#
+
+# cat default.conf
+
+server {
+    listen       80;
+    listen  [::]:80;
+    server_name  localhost;
+
+    #access_log  /var/log/nginx/host.access.log  main;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    #location ~ \.php$ {
+    #    root           html;
+    #    fastcgi_pass   127.0.0.1:9000;
+    #    fastcgi_index  index.php;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+    #    include        fastcgi_params;
+    #}
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+}
+
+root@*************:/etc/nginx/conf.d#
+
+```
