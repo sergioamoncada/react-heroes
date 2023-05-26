@@ -3940,3 +3940,5 @@ docker container run -p 80:80 heroes-app
 ```
 
 ![Projet working](assets/img/nginx-server-end-project.png)
+
+Fin Section 9 - Nginx - Server en ligne avec Docker image.
